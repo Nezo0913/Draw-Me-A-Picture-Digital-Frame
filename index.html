@@ -65,7 +65,7 @@
   // FIREBASE CONFIG
   // Replace this with YOUR config from Firebase
   // =========================
-  const firebaseConfig = {
+ const firebaseConfig = {
   apiKey: "AIzaSyBoIhnx8vWOsZEJwMYBWJKGiDn9ructaGA",
   authDomain: "drawme-de623.firebaseapp.com",
   projectId: "drawme-de623",
@@ -196,24 +196,29 @@
   }
 
   window.clearCanvas = async function() {
-
-    // Remove only this user's lines from Firebase
-    // Future versions can add persistent user IDs/authentication
     const snapshotRef = ref(db, 'lines');
 
+    // Fetch all lines once
     onValue(snapshotRef, async (snapshot) => {
       if (!snapshot.exists()) return;
 
       const data = snapshot.val();
+      const deletePromises = [];
 
+      // Queue all deletions first
       for (const key in data) {
         const line = data[key];
 
-        // Only delete lines created by this client session
         if (line.clientId === clientId) {
-          await remove(ref(db, `lines/${key}`));
+          deletePromises.push(
+            remove(ref(db, `lines/${key}`))
+          );
         }
       }
+
+      // Delete everything simultaneously
+      await Promise.all(deletePromises);
+
     }, {
       onlyOnce: true
     });
