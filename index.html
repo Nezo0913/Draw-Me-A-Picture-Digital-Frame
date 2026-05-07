@@ -69,30 +69,73 @@
 
 <canvas id="canvas" width="600" height="400"></canvas>
 
-<script>
+<script type="module">
+  // =========================
+  // FIREBASE IMPORTS
+  // =========================
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import {
+    getDatabase,
+    ref,
+    push,
+    onChildAdded,
+    remove,
+    onValue
+  } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+  // =========================
+  // FIREBASE CONFIG
+  // Replace this with YOUR config from Firebase
+  // =========================
+const firebaseConfig = {
+  apiKey: "AIzaSyBoIhnx8vWOsZEJwMYBWJKGiDn9ructaGA",
+  authDomain: "drawme-de623.firebaseapp.com",
+  projectId: "drawme-de623",
+  storageBucket: "drawme-de623.firebasestorage.app",
+  messagingSenderId: "399233978572",
+  appId: "1:399233978572:web:0f3deb478f72314f4b3269",
+  measurementId: "G-Z10MF4D981"
+};
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // =========================
+  // CANVAS SETUP
+  // =========================
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
 
   let drawing = false;
   let mode = 'draw';
+  let lastX = 0;
+  let lastY = 0;
 
+  // =========================
+  // START DRAWING
+  // =========================
   canvas.addEventListener('mousedown', (e) => {
     drawing = true;
 
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // FIX: Start a new path at the exact click position
-    ctx.beginPath();
-    ctx.moveTo(x, y);
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
   });
 
+  // =========================
+  // STOP DRAWING
+  // =========================
   canvas.addEventListener('mouseup', () => {
     drawing = false;
-    ctx.beginPath(); // reset path to avoid connecting lines
   });
 
+  canvas.addEventListener('mouseleave', () => {
+    drawing = false;
+  });
+
+  // =========================
+  // DRAW EVENT
+  // =========================
   canvas.addEventListener('mousemove', draw);
 
   function draw(e) {
@@ -102,28 +145,67 @@
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    ctx.lineWidth = (mode === 'draw') ? 3 : 20;
+    const lineData = {
+      x1: lastX,
+      y1: lastY,
+      x2: x,
+      y2: y,
+      mode: mode
+    };
+
+    // Draw locally
+    renderLine(lineData);
+
+    // Send to Firebase
+    push(ref(db, 'lines'), lineData);
+
+    lastX = x;
+    lastY = y;
+  }
+
+  // =========================
+  // RENDER LINE
+  // =========================
+  function renderLine(line) {
+    ctx.beginPath();
+    ctx.moveTo(line.x1, line.y1);
+    ctx.lineTo(line.x2, line.y2);
+
+    ctx.lineWidth = line.mode === 'draw' ? 3 : 20;
     ctx.lineCap = 'round';
+    ctx.strokeStyle = line.mode === 'draw' ? 'black' : 'white';
 
-    if (mode === 'draw') {
-      ctx.strokeStyle = 'black';
-    } else {
-      ctx.strokeStyle = 'white';
-    }
-
-    ctx.lineTo(x, y);
     ctx.stroke();
   }
 
-  function setMode(newMode) {
+  // =========================
+  // REALTIME LISTENER
+  // =========================
+  onChildAdded(ref(db, 'lines'), (snapshot) => {
+    const line = snapshot.val();
+    renderLine(line);
+  });
+
+  // =========================
+  // BUTTON FUNCTIONS
+  // =========================
+  window.setMode = function(newMode) {
     mode = newMode;
   }
 
-  function clearCanvas() {
+  window.clearCanvas = async function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    await remove(ref(db, 'lines'));
   }
 
-  function changeStyle(style) {
+  // Re-clear everyone when database empties
+  onValue(ref(db, 'lines'), (snapshot) => {
+    if (!snapshot.exists()) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  });
+
+  window.changeStyle = function(style) {
     document.body.className = style === 'default' ? '' : style;
   }
 </script>
