@@ -65,7 +65,7 @@
   // FIREBASE CONFIG
   // Replace this with YOUR config from Firebase
   // =========================
- const firebaseConfig = {
+  const firebaseConfig = {
   apiKey: "AIzaSyBoIhnx8vWOsZEJwMYBWJKGiDn9ructaGA",
   authDomain: "drawme-de623.firebaseapp.com",
   projectId: "drawme-de623",
@@ -161,12 +161,32 @@
   }
 
   // =========================
-  // REALTIME LISTENER
+  // REALTIME SYNCHRONIZATION
   // =========================
+
+  // Store all active lines locally
+  let allLines = {};
+
+  // Add new lines from any user
   onChildAdded(ref(db, 'lines'), (snapshot) => {
-    const line = snapshot.val();
-    renderLine(line);
+    allLines[snapshot.key] = snapshot.val();
+    redrawCanvas();
   });
+
+  // Remove deleted lines from any user
+  onValue(ref(db, 'lines'), (snapshot) => {
+    allLines = snapshot.val() || {};
+    redrawCanvas();
+  });
+
+  // Redraw entire canvas from synchronized state
+  function redrawCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (const key in allLines) {
+      renderLine(allLines[key]);
+    }
+  }
 
   // =========================
   // BUTTON FUNCTIONS
@@ -176,9 +196,8 @@
   }
 
   window.clearCanvas = async function() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Remove only this user's lines locally
+    // Remove only this user's lines from Firebase
     // Future versions can add persistent user IDs/authentication
     const snapshotRef = ref(db, 'lines');
 
@@ -200,12 +219,7 @@
     });
   }
 
-  // Re-clear everyone when database empties
-  onValue(ref(db, 'lines'), (snapshot) => {
-    if (!snapshot.exists()) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-  });
+  
 
   
 </script>
