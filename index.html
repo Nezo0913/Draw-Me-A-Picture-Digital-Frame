@@ -51,6 +51,9 @@
 
 <!-- ROOM SCREEN -->
 <div id="roomScreen" style="display:none;">
+  <button onclick="startGame()">Start Game</button>
+
+  <p id="lobbyNotice"></p>
   <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
   <h3>Players</h3>
 
@@ -67,7 +70,7 @@
   
 </div>
 
-<canvas id="canvas" width="600" height="400"></canvas>
+<canvas id="canvas" width="600" height="400" style="display:none;"></canvas>
 
 <script type="module">
   // =========================
@@ -96,15 +99,14 @@
   // Replace this with YOUR config from Firebase
   // =========================
   const firebaseConfig = {
-  apiKey: "AIzaSyBoIhnx8vWOsZEJwMYBWJKGiDn9ructaGA",
-  authDomain: "drawme-de623.firebaseapp.com",
-  databaseURL: "https://drawme-de623-default-rtdb.firebaseio.com",
-  projectId: "drawme-de623",
-  storageBucket: "drawme-de623.firebasestorage.app",
-  messagingSenderId: "399233978572",
-  appId: "1:399233978572:web:0f3deb478f72314f4b3269",
-  measurementId: "G-Z10MF4D981"
-};
+    apiKey: 'YOUR_API_KEY',
+    authDomain: 'YOUR_AUTH_DOMAIN',
+    databaseURL: 'YOUR_DATABASE_URL',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_STORAGE_BUCKET',
+    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+    appId: 'YOUR_APP_ID'
+  };
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
@@ -139,6 +141,11 @@
 
     await set(ref(db, `rooms/${roomCode}/players/${clientId}`), {
       name: currentPlayerName
+    });
+
+    // Remove player automatically on disconnect
+    window.addEventListener('beforeunload', async () => {
+      await remove(ref(db, `rooms/${roomCode}/players/${clientId}`));
     });
 
     enterRoom(roomCode);
@@ -207,6 +214,8 @@
   // =========================
 
   function synchronizeRoom(roomCode) {
+    let previousPlayers = {};
+
     onValue(ref(db, `rooms/${roomCode}/players`), (snapshot) => {
       const players = snapshot.val() || {};
 
@@ -215,6 +224,16 @@
 
       const playerIds = Object.keys(players);
 
+      // Detect players leaving
+      for (const id in previousPlayers) {
+        if (!players[id]) {
+          document.getElementById('lobbyNotice').innerText =
+            `${previousPlayers[id].name} left the lobby`;
+        }
+      }
+
+      previousPlayers = players;
+
       playerIds.forEach(id => {
         const li = document.createElement('li');
         li.innerText = players[id].name;
@@ -222,7 +241,7 @@
       });
 
       document.getElementById('playerCount').innerText =
-        `${playerIds.length}/7 Players`;
+        `${playerIds.length}/7 Players currently in lobby`;
     });
   }
 
