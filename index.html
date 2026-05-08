@@ -65,7 +65,7 @@
   // FIREBASE CONFIG
   // Replace this with YOUR config from Firebase
   // =========================
-  const firebaseConfig = {
+ const firebaseConfig = {
   apiKey: "AIzaSyBoIhnx8vWOsZEJwMYBWJKGiDn9ructaGA",
   authDomain: "drawme-de623.firebaseapp.com",
   projectId: "drawme-de623",
@@ -86,14 +86,8 @@
 
   let drawing = false;
 
-  // Persistent client ID
-  // Prevents old drawings from becoming undeletable after refresh
-  let clientId = localStorage.getItem('drawingClientId');
-
-  if (!clientId) {
-    clientId = crypto.randomUUID();
-    localStorage.setItem('drawingClientId', clientId);
-  }
+  // Unique temporary client ID
+  const clientId = crypto.randomUUID();
   let mode = 'draw';
   let lastX = 0;
   let lastY = 0;
