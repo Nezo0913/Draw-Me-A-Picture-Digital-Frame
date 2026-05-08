@@ -52,6 +52,7 @@
 <!-- ROOM SCREEN -->
 <div id="roomScreen" style="display:none;">
   <button onclick="startGame()">Start Game</button>
+  <button onclick="leaveRoom()">Exit Room</button>
 
   <p id="lobbyNotice"></p>
   <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
@@ -146,7 +147,9 @@
 
     // Remove player automatically on disconnect
     window.addEventListener('beforeunload', async () => {
-      await remove(ref(db, `rooms/${roomCode}/players/${clientId}`));
+      if (currentRoom) {
+        await remove(ref(db, `rooms/${currentRoom}/players/${clientId}`));
+      }
     });
 
     enterRoom(roomCode);
@@ -230,6 +233,10 @@
         if (!players[id]) {
           document.getElementById('lobbyNotice').innerText =
             `${previousPlayers[id].name} left the lobby`;
+
+          setTimeout(() => {
+            document.getElementById('lobbyNotice').innerText = '';
+          }, 3000);
         }
       }
 
@@ -244,6 +251,25 @@
       document.getElementById('playerCount').innerText =
         `${playerIds.length}/7 Players currently in lobby`;
     });
+  }
+
+  // =========================
+  // LEAVE ROOM
+  // =========================
+
+  window.leaveRoom = async function() {
+    if (!currentRoom) return;
+
+    await remove(ref(db, `rooms/${currentRoom}/players/${clientId}`));
+
+    currentRoom = null;
+
+    document.getElementById('roomScreen').style.display = 'none';
+    document.getElementById('lobbyScreen').style.display = 'block';
+
+    document.getElementById('playerList').innerHTML = '';
+    document.getElementById('playerCount').innerText = '';
+    document.getElementById('lobbyNotice').innerText = '';
   }
 
   // =========================
