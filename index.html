@@ -170,14 +170,8 @@
   // Prevent duplicate redraw spam
   let isRedrawing = false;
 
-  // Add new lines from any user
-  onChildAdded(ref(db, 'lines'), (snapshot) => {
-    allLines[snapshot.key] = snapshot.val();
-    redrawCanvas();
-  });
-
   // Full synchronization listener
-  // Keeps every client perfectly aligned
+  // Keeps every client perfectly aligned using a single source of truth
   onValue(ref(db, 'lines'), (snapshot) => {
     allLines = snapshot.val() || {};
     redrawCanvas();
