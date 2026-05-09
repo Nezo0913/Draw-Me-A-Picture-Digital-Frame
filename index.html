@@ -284,11 +284,16 @@
   // =========================
 
   window.startGame = async function() {
+
     if (!currentRoom) return;
 
-    const playersSnapshotRef = ref(db, `rooms/${currentRoom}/players`);
+    const playersSnapshotRef = ref(
+      db,
+      `rooms/${currentRoom}/players`
+    );
 
     onValue(playersSnapshotRef, async (snapshot) => {
+
       const players = snapshot.val() || {};
       const playerIds = Object.keys(players);
 
@@ -296,6 +301,49 @@
         alert('Need at least 2 players');
         return;
       }
+
+      // 1. Collect players
+      const collectedPlayers = [...playerIds];
+
+      // 2. Shuffle queue
+      const shuffledQueue = collectedPlayers
+        .sort(() => Math.random() - 0.5);
+
+      // Save locally
+      leaderQueue = shuffledQueue;
+
+      // 3. Save queue
+      await set(
+        ref(db, `rooms/${currentRoom}/leaderQueue`),
+        shuffledQueue
+      );
+
+      // 4. Set current round
+      currentRound = 0;
+
+      await set(
+        ref(db, `rooms/${currentRoom}/currentRound`),
+        0
+      );
+
+      // 5. Set current leader
+      currentLeader = shuffledQueue[0];
+
+      await set(
+        ref(db, `rooms/${currentRoom}/currentLeader`),
+        currentLeader
+      );
+
+      // 6. Start prompt phase LAST
+      await set(
+        ref(db, `rooms/${currentRoom}/gameState`),
+        'PROMPT'
+      );
+
+    }, {
+      onlyOnce: true
+    });
+  }
 
       // Create shuffled leader order
       leaderQueue = [...playerIds]
