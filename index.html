@@ -55,6 +55,12 @@
   <button onclick="leaveRoom()">Exit Room</button>
 
   <p id="lobbyNotice"></p>
+
+  <div id="gameStatus"></div>
+  <button onclick="startGame()">Start Game</button>
+  <button onclick="leaveRoom()">Exit Room</button>
+
+  <p id="lobbyNotice"></p>
   <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
   <h3>Players</h3>
 
@@ -70,6 +76,8 @@
 
   
 </div>
+
+<h2 id="promptDisplay" style="display:none;"></h2>
 
 <canvas id="canvas" width="600" height="400" style="display:none;"></canvas>
 
@@ -215,6 +223,7 @@
     document.getElementById('roomCodeDisplay').innerText = roomCode;
 
     synchronizeRoom(roomCode);
+    synchronizeGameState(roomCode);
   }
 
   // =========================
@@ -255,6 +264,134 @@
       document.getElementById('playerCount').innerText =
         `${playerIds.length}/7 Players currently in lobby`;
     });
+  }
+
+  // =========================
+  // GAME STATE VARIABLES
+  // =========================
+
+  let currentLeader = null;
+  let currentPrompt = '';
+
+  // =========================
+  // START GAME
+  // =========================
+
+  window.startGame = async function() {
+    if (!currentRoom) return;
+
+    const playersSnapshotRef = ref(db, `rooms/${currentRoom}/players`);
+
+    onValue(playersSnapshotRef, async (snapshot) => {
+      const players = snapshot.val() || {};
+      const playerIds = Object.keys(players);
+
+      if (playerIds.length < 2) {
+        alert('Need at least 2 players');
+        return;
+      }
+
+      // Random leader selection
+      const randomLeader =
+        playerIds[Math.floor(Math.random() * playerIds.length)];
+
+      currentLeader = randomLeader;
+
+      await set(ref(db, `rooms/${currentRoom}/gameState`), 'PROMPT');
+
+      await set(ref(db, `rooms/${currentRoom}/currentLeader`), randomLeader);
+
+    }, {
+      onlyOnce: true
+    });
+  }
+
+  // =========================
+  // GAME STATE SYNCHRONIZATION
+  // =========================
+
+  function synchronizeGameState(roomCode) {
+
+    // Sync game state
+    onValue(ref(db, `rooms/${roomCode}/gameState`), (snapshot) => {
+      const gameState = snapshot.val();
+
+      if (!gameState) return;
+
+      renderGameScreen(gameState);
+    });
+
+    // Sync current leader
+    onValue(ref(db, `rooms/${roomCode}/currentLeader`), (snapshot) => {
+      currentLeader = snapshot.val();
+    });
+
+    // Sync prompt
+    onValue(ref(db, `rooms/${roomCode}/prompt`), (snapshot) => {
+      currentPrompt = snapshot.val() || '';
+
+      document.getElementById('promptDisplay').innerText =
+        `Prompt: ${currentPrompt}`;
+    });
+  }
+
+  // =========================
+  // RENDER GAME SCREENS
+  // =========================
+
+  function renderGameScreen(gameState) {
+    const gameStatus = document.getElementById('gameStatus');
+    const canvas = document.getElementById('canvas');
+    const toolbar = document.getElementById('toolbar');
+    const promptDisplay = document.getElementById('promptDisplay');
+
+    // PROMPT PHASE
+    if (gameState === 'PROMPT') {
+
+      canvas.style.display = 'none';
+      toolbar.style.display = 'none';
+      promptDisplay.style.display = 'none';
+
+      if (clientId === currentLeader) {
+        gameStatus.innerHTML = `
+          <h2>You are the leader!</h2>
+          <input id="promptInput" placeholder="What should everyone draw?" />
+          <button onclick="submitPrompt()">Submit Prompt</button>
+        `;
+      } else {
+        gameStatus.innerHTML = `
+          <h2>The leader is thinking...</h2>
+        `;
+      }
+    }
+
+    // DRAWING PHASE
+    if (gameState === 'DRAWING') {
+      gameStatus.innerHTML = `
+        <h2>Everyone Draw!</h2>
+      `;
+
+      canvas.style.display = 'block';
+      toolbar.style.display = 'flex';
+      promptDisplay.style.display = 'block';
+    }
+  }
+
+  // =========================
+  // SUBMIT PROMPT
+  // =========================
+
+  window.submitPrompt = async function() {
+    const prompt = document
+      .getElementById('promptInput')
+      .value
+      .trim();
+
+    if (!prompt) return;
+
+    await set(ref(db, `rooms/${currentRoom}/prompt`), prompt);
+
+    await set(ref(db, `rooms/${currentRoom}/gameState`), 'DRAWING');
   }
 
   // =========================
