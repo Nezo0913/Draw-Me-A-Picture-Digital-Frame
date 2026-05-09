@@ -51,18 +51,20 @@
 
 <!-- ROOM SCREEN -->
 <div id="roomScreen" style="display:none;">
+  <div id="lobbyControls">
   <button onclick="startGame()">Start Game</button>
   <button onclick="leaveRoom()">Exit Room</button>
+</div>
 
-  <p id="lobbyNotice"></p>
+<p id="lobbyNotice"></p>
 
-  <div id="gameStatus"></div>
+<div id="gameStatus"></div>
   <h3 id="countdownTimer" style="display:none;"></h3>
   <button onclick="startGame()">Start Game</button>
   <button onclick="leaveRoom()">Exit Room</button>
 
   <p id="lobbyNotice"></p>
-  <h2>Room Code: <span id="roomCodeDisplay"></span></h2>
+  <h2 id="roomCodeText">Room Code: <span id="roomCodeDisplay"></span></h2>
   <h3>Players</h3>
 
   <ul id="playerList"></ul>
@@ -346,6 +348,12 @@
     document.getElementById('playerList').style.display =
       gameState === 'LOBBY' ? 'block' : 'none';
 
+    document.getElementById('roomCodeText').style.display =
+      gameState === 'LOBBY' ? 'block' : 'none';
+
+    document.getElementById('lobbyControls').style.display =
+      gameState === 'LOBBY' ? 'block' : 'none';
+
     document.getElementById('playerCount').style.display =
       gameState === 'LOBBY' ? 'block' : 'none';
     const gameStatus = document.getElementById('gameStatus');
@@ -356,6 +364,9 @@
     // PROMPT PHASE
     if (gameState === 'PROMPT') {
 
+      // Clear old content first
+      gameStatus.innerHTML = '';
+
       // Countdown intro before prompt phase
       startCountdown(3);
 
@@ -363,16 +374,23 @@
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
 
-      if (clientId === currentLeader) {
+      setTimeout(() => {
 
-        // Small delay so leader sync finishes properly
-        setTimeout(() => {
+        // Leader prompt screen
+        if (clientId === currentLeader) {
         gameStatus.innerHTML = `
           <h2>You are the leader!</h2>
           <input id="promptInput" placeholder="What should everyone draw?" />
           <button onclick="submitPrompt()">Submit Prompt</button>
         `;
-        }, 100);
+
+        } else {
+          gameStatus.innerHTML = `
+            <h2>The leader is thinking...</h2>
+          `;
+        }
+
+      }, 100);
       } else {
         gameStatus.innerHTML = `
           <h2>The leader is thinking...</h2>
