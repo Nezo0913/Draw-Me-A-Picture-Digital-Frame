@@ -61,9 +61,6 @@
 <div id="gameStatus"></div>
   <h3 id="countdownTimer" style="display:none;"></h3>
 <h2 id="roundTimer" style="display:none;"></h2>
-  <button onclick="startGame()">Start Game</button>
-  <button onclick="leaveRoom()">Exit Room</button>
-
   <p id="lobbyNotice"></p>
   <h2 id="roomCodeText">Room Code: <span id="roomCodeDisplay"></span></h2>
   <h3>Players</h3>
@@ -278,6 +275,10 @@
   let currentLeader = null;
   let currentPrompt = '';
 
+  // New ordered leader system
+  let leaderQueue = [];
+  let currentRound = 0;
+
   // =========================
   // START GAME
   // =========================
@@ -296,15 +297,28 @@
         return;
       }
 
-      // Random leader selection
-      const randomLeader =
-        playerIds[Math.floor(Math.random() * playerIds.length)];
+      // Create shuffled leader order
+      leaderQueue = [...playerIds]
+        .sort(() => Math.random() - 0.5);
 
-      currentLeader = randomLeader;
+      currentRound = 0;
 
-      await set(ref(db, `rooms/${currentRoom}/gameState`), 'PROMPT');
+      await set(
+        ref(db, `rooms/${currentRoom}/leaderQueue`),
+        leaderQueue
+      );
 
-      await set(ref(db, `rooms/${currentRoom}/currentLeader`), randomLeader);
+      await set(
+        ref(db, `rooms/${currentRoom}/currentRound`),
+        currentRound
+      );
+
+      currentLeader = leaderQueue[currentRound];
+
+      await set(
+        ref(db, `rooms/${currentRoom}/currentLeader`),
+        currentLeader
+      );
 
     }, {
       onlyOnce: true
@@ -324,6 +338,16 @@
       if (!gameState) return;
 
       renderGameScreen(gameState);
+    });
+
+    // Sync leader queue
+    onValue(ref(db, `rooms/${roomCode}/leaderQueue`), (snapshot) => {
+      leaderQueue = snapshot.val() || [];
+    });
+
+    // Sync current round
+    onValue(ref(db, `rooms/${roomCode}/currentRound`), (snapshot) => {
+      currentRound = snapshot.val() || 0;
     });
 
     // Sync current leader
@@ -355,13 +379,22 @@
     const playerCount = document.getElementById('playerCount');
     const lobbyControls = document.getElementById('lobbyControls');
 
-    // Hide lobby elements during game
+    // Hide ALL lobby elements during active gameplay
     const inLobby = gameState === 'LOBBY';
 
     roomCodeText.style.display = inLobby ? 'block' : 'none';
     playerList.style.display = inLobby ? 'block' : 'none';
     playerCount.style.display = inLobby ? 'block' : 'none';
-    lobbyControls.style.display = inLobby ? 'block' : 'none';
+    lobbyControls.style.display = inLobby ? 'flex' : 'none';
+
+    // Clear gameplay UI when returning to lobby
+    if (inLobby) {
+      canvas.style.display = 'none';
+      toolbar.style.display = 'none';
+      promptDisplay.style.display = 'none';
+      document.getElementById('roundTimer').style.display = 'none';
+      gameStatus.innerHTML = '';
+    }
 
     // PROMPT PHASE
     if (gameState === 'PROMPT') {
@@ -385,6 +418,22 @@
           <h2>The leader is thinking...</h2>
         `;
       }
+    }
+
+    // FINAL VOTING PHASE
+    if (gameState === 'FINAL_VOTING') {
+
+      canvas.style.display = 'none';
+      toolbar.style.display = 'none';
+      promptDisplay.style.display = 'none';
+
+      gameStatus.innerHTML = `
+        <h2>Final Voting Phase</h2>
+        <p>Everyone has already become leader.</p>
+        <button onclick="returnToLobby()">
+          Play Again
+        </button>
+      `;
     }
 
     // DRAWING PHASE
@@ -436,10 +485,37 @@
 
         timer.innerText = 'Round Finished!';
 
-        // Temporary return to lobby state
+        // Advance ordered leader rotation
+        currentRound++;
+
+        // All players already became leader
+        if (currentRound >= leaderQueue.length) {
+
+          await set(
+            ref(db, `rooms/${currentRoom}/gameState`),
+            'FINAL_VOTING'
+          );
+
+          timer.innerText = 'Final Voting Phase!';
+          return;
+        }
+
+        // Next leader in shuffled order
+        currentLeader = leaderQueue[currentRound];
+
+        await set(
+          ref(db, `rooms/${currentRoom}/currentRound`),
+          currentRound
+        );
+
+        await set(
+          ref(db, `rooms/${currentRoom}/currentLeader`),
+          currentLeader
+        );
+
         await set(
           ref(db, `rooms/${currentRoom}/gameState`),
-          'LOBBY'
+          'PROMPT'
         );
       }
 
@@ -461,6 +537,22 @@
     await set(ref(db, `rooms/${currentRoom}/prompt`), prompt);
 
     await set(ref(db, `rooms/${currentRoom}/gameState`), 'DRAWING');
+  }
+
+  // =========================
+  // RETURN TO LOBBY
+  // =========================
+
+  window.returnToLobby = async function() {
+
+    await set(
+      ref(db, `rooms/${currentRoom}/gameState`),
+      'LOBBY'
+    );
+
+    gameStatus.innerHTML = '';
+
+    document.getElementById('roundTimer').style.display = 'none';
   }
 
   // =========================
