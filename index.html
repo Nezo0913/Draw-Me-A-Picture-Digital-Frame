@@ -285,15 +285,22 @@
   let drawing = false;
 
   // Session-based client ID
-  // Force a unique identity for every newly opened tab/window
-  // while still persisting during refreshes inside the SAME tab
+  // Duplicated tabs can inherit sessionStorage in some browsers,
+  // so force detection using a per-tab marker.
 
-  if (!sessionStorage.getItem('drawingClientId')) {
+  const TAB_MARKER = crypto.randomUUID();
+
+  if (
+    !sessionStorage.getItem('drawingClientId') ||
+    sessionStorage.getItem('tabMarker')
+  ) {
     sessionStorage.setItem(
       'drawingClientId',
       crypto.randomUUID()
     );
   }
+
+  sessionStorage.setItem('tabMarker', TAB_MARKER);
 
   let clientId = sessionStorage.getItem('drawingClientId');
   let mode = 'draw';
