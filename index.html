@@ -344,58 +344,42 @@
   // =========================
 
   function renderGameScreen(gameState) {
-    
-    // Hide lobby-only elements during gameplay
-    document.getElementById('playerList').style.display =
-      gameState === 'LOBBY' ? 'block' : 'none';
 
-    document.getElementById('roomCodeText').style.display =
-      gameState === 'LOBBY' ? 'block' : 'none';
-
-    document.getElementById('lobbyControls').style.display =
-      gameState === 'LOBBY' ? 'block' : 'none';
-
-    document.getElementById('playerCount').style.display =
-      gameState === 'LOBBY' ? 'block' : 'none';
     const gameStatus = document.getElementById('gameStatus');
     const canvas = document.getElementById('canvas');
     const toolbar = document.getElementById('toolbar');
     const promptDisplay = document.getElementById('promptDisplay');
+    const roomCodeText = document.getElementById('roomCodeText');
+    const playerList = document.getElementById('playerList');
+    const playerCount = document.getElementById('playerCount');
+    const lobbyControls = document.getElementById('lobbyControls');
+
+    // Hide lobby elements during game
+    const inLobby = gameState === 'LOBBY';
+
+    roomCodeText.style.display = inLobby ? 'block' : 'none';
+    playerList.style.display = inLobby ? 'block' : 'none';
+    playerCount.style.display = inLobby ? 'block' : 'none';
+    lobbyControls.style.display = inLobby ? 'block' : 'none';
 
     // PROMPT PHASE
     if (gameState === 'PROMPT') {
-
-      // Clear old content first
-      gameStatus.innerHTML = '';
-
-      // Countdown intro before prompt phase
-      startCountdown(3);
 
       canvas.style.display = 'none';
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
 
-      setTimeout(() => {
-
-        // Prevent stale synchronization race
-        if (!currentLeader) return;
-
-        // Leader prompt screen
-        if (clientId === currentLeader) {
+      // Leader screen
+      if (clientId === currentLeader) {
         gameStatus.innerHTML = `
           <h2>You are the leader!</h2>
           <input id="promptInput" placeholder="What should everyone draw?" />
           <button onclick="submitPrompt()">Submit Prompt</button>
         `;
+      }
 
-        } else {
-          gameStatus.innerHTML = `
-            <h2>The leader is thinking...</h2>
-          `;
-        }
-
-      }, 100);
-      } else {
+      // Waiting screen
+      else {
         gameStatus.innerHTML = `
           <h2>The leader is thinking...</h2>
         `;
@@ -404,6 +388,7 @@
 
     // DRAWING PHASE
     if (gameState === 'DRAWING') {
+
       gameStatus.innerHTML = `
         <h2>Everyone Draw!</h2>
       `;
@@ -412,33 +397,6 @@
       toolbar.style.display = 'flex';
       promptDisplay.style.display = 'block';
     }
-  }
-
-  // =========================
-  // COUNTDOWN SYSTEM
-  // =========================
-
-  function startCountdown(seconds) {
-    const timer = document.getElementById('countdownTimer');
-
-    timer.style.display = 'block';
-
-    let remaining = seconds;
-
-    timer.innerText = `Starting in ${remaining}...`;
-
-    const interval = setInterval(() => {
-      remaining--;
-
-      if (remaining <= 0) {
-        clearInterval(interval);
-        timer.style.display = 'none';
-        return;
-      }
-
-      timer.innerText = `Starting in ${remaining}...`;
-
-    }, 1000);
   }
 
   // =========================
