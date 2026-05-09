@@ -57,6 +57,7 @@
   <p id="lobbyNotice"></p>
 
   <div id="gameStatus"></div>
+  <h3 id="countdownTimer" style="display:none;"></h3>
   <button onclick="startGame()">Start Game</button>
   <button onclick="leaveRoom()">Exit Room</button>
 
@@ -340,6 +341,13 @@
   // =========================
 
   function renderGameScreen(gameState) {
+    
+    // Hide lobby-only elements during gameplay
+    document.getElementById('playerList').style.display =
+      gameState === 'LOBBY' ? 'block' : 'none';
+
+    document.getElementById('playerCount').style.display =
+      gameState === 'LOBBY' ? 'block' : 'none';
     const gameStatus = document.getElementById('gameStatus');
     const canvas = document.getElementById('canvas');
     const toolbar = document.getElementById('toolbar');
@@ -348,16 +356,23 @@
     // PROMPT PHASE
     if (gameState === 'PROMPT') {
 
+      // Countdown intro before prompt phase
+      startCountdown(3);
+
       canvas.style.display = 'none';
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
 
       if (clientId === currentLeader) {
+
+        // Small delay so leader sync finishes properly
+        setTimeout(() => {
         gameStatus.innerHTML = `
           <h2>You are the leader!</h2>
           <input id="promptInput" placeholder="What should everyone draw?" />
           <button onclick="submitPrompt()">Submit Prompt</button>
         `;
+        }, 100);
       } else {
         gameStatus.innerHTML = `
           <h2>The leader is thinking...</h2>
@@ -375,6 +390,33 @@
       toolbar.style.display = 'flex';
       promptDisplay.style.display = 'block';
     }
+  }
+
+  // =========================
+  // COUNTDOWN SYSTEM
+  // =========================
+
+  function startCountdown(seconds) {
+    const timer = document.getElementById('countdownTimer');
+
+    timer.style.display = 'block';
+
+    let remaining = seconds;
+
+    timer.innerText = `Starting in ${remaining}...`;
+
+    const interval = setInterval(() => {
+      remaining--;
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        timer.style.display = 'none';
+        return;
+      }
+
+      timer.innerText = `Starting in ${remaining}...`;
+
+    }, 1000);
   }
 
   // =========================
