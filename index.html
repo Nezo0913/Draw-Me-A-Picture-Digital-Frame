@@ -51,7 +51,7 @@
 
 <!-- ROOM SCREEN -->
 <div id="roomScreen" style="display:none;">
-  <div id="lobbyControls">
+  <div id="lobbyControls" style="display:none;">
   <button onclick="startGame()">Start Game</button>
   <button onclick="leaveRoom()">Exit Room</button>
 </div>
@@ -222,6 +222,7 @@
 
     document.getElementById('lobbyScreen').style.display = 'none';
     document.getElementById('roomScreen').style.display = 'block';
+    document.getElementById('lobbyControls').style.display = 'block';
 
     document.getElementById('roomCodeDisplay').innerText = roomCode;
 
@@ -375,6 +376,9 @@
       promptDisplay.style.display = 'none';
 
       setTimeout(() => {
+
+        // Prevent stale synchronization race
+        if (!currentLeader) return;
 
         // Leader prompt screen
         if (clientId === currentLeader) {
