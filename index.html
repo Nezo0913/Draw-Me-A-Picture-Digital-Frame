@@ -60,6 +60,7 @@
 
 <div id="gameStatus"></div>
   <h3 id="countdownTimer" style="display:none;"></h3>
+<h2 id="roundTimer" style="display:none;"></h2>
   <button onclick="startGame()">Start Game</button>
   <button onclick="leaveRoom()">Exit Room</button>
 
@@ -389,6 +390,8 @@
     // DRAWING PHASE
     if (gameState === 'DRAWING') {
 
+      startRoundTimer(30);
+
       gameStatus.innerHTML = `
         <h2>Everyone Draw!</h2>
       `;
@@ -397,6 +400,50 @@
       toolbar.style.display = 'flex';
       promptDisplay.style.display = 'block';
     }
+  }
+
+  // =========================
+  // ROUND TIMER
+  // =========================
+
+  let roundInterval = null;
+
+  function startRoundTimer(seconds) {
+
+    const timer = document.getElementById('roundTimer');
+
+    timer.style.display = 'block';
+
+    // Prevent duplicated timers
+    if (roundInterval) {
+      clearInterval(roundInterval);
+    }
+
+    let remaining = seconds;
+
+    timer.innerText = `Time Left: ${remaining}`;
+
+    roundInterval = setInterval(async () => {
+
+      remaining--;
+
+      timer.innerText = `Time Left: ${remaining}`;
+
+      // Round finished
+      if (remaining <= 0) {
+
+        clearInterval(roundInterval);
+
+        timer.innerText = 'Round Finished!';
+
+        // Temporary return to lobby state
+        await set(
+          ref(db, `rooms/${currentRoom}/gameState`),
+          'LOBBY'
+        );
+      }
+
+    }, 1000);
   }
 
   // =========================
@@ -421,6 +468,22 @@
   // =========================
 
   window.leaveRoom = async function() {
+
+    // Prevent leaving during active game
+    const gameStateSnapshotRef = ref(db, `rooms/${currentRoom}/gameState`);
+
+    onValue(gameStateSnapshotRef, async (snapshot) => {
+
+      const gameState = snapshot.val();
+
+      if (gameState && gameState !== 'LOBBY') {
+        alert('Cannot leave during an active match');
+        return;
+      }
+
+    }, {
+      onlyOnce: true
+    });
     if (!currentRoom) return;
 
     await remove(ref(db, `rooms/${currentRoom}/players/${clientId}`));
@@ -444,22 +507,22 @@
   let drawing = false;
 
   // Session-based client ID
-  // Duplicated tabs can inherit sessionStorage in some browsers,
-  // so force detection using a per-tab marker.
+  // Generate a completely unique player session per browser tab.
+  // Prevent duplicated tabs from inheriting the same identity.
 
-  const TAB_MARKER = crypto.randomUUID();
+  const navigationType =
+    performance.getEntriesByType('navigation')[0]?.type;
 
+  // Generate NEW identity for duplicated/new tabs
   if (
-    !sessionStorage.getItem('drawingClientId') ||
-    sessionStorage.getItem('tabMarker')
+    navigationType !== 'reload' ||
+    !sessionStorage.getItem('drawingClientId')
   ) {
     sessionStorage.setItem(
       'drawingClientId',
       crypto.randomUUID()
     );
   }
-
-  sessionStorage.setItem('tabMarker', TAB_MARKER);
 
   let clientId = sessionStorage.getItem('drawingClientId');
   let mode = 'draw';
