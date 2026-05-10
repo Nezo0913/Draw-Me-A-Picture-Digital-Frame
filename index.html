@@ -283,95 +283,38 @@
   // START GAME
   // =========================
 
-  window.startGame = async function() {
+  window.startGame = async function () {
+  if (!currentRoom) return;
 
-    if (!currentRoom) return;
+  const playersSnapshotRef = ref(db, `rooms/${currentRoom}/players`);
 
-    const playersSnapshotRef = ref(
-      db,
-      `rooms/${currentRoom}/players`
-    );
+  onValue(playersSnapshotRef, async (snapshot) => {
+    const players = snapshot.val() || {};
+    const playerIds = Object.keys(players);
 
-    onValue(playersSnapshotRef, async (snapshot) => {
+    if (playerIds.length < 2) {
+      alert('Need at least 2 players');
+      return;
+    }
 
-      const players = snapshot.val() || {};
-      const playerIds = Object.keys(players);
+    // 1. Shuffle players (leader order)
+    const shuffledQueue = [...playerIds].sort(() => Math.random() - 0.5);
 
-      if (playerIds.length < 2) {
-        alert('Need at least 2 players');
-        return;
-      }
+    leaderQueue = shuffledQueue;
+    currentRound = 0;
+    currentLeader = leaderQueue[0];
 
-      // 1. Collect players
-      const collectedPlayers = [...playerIds];
+    // 2. Save to Firebase
+    await set(ref(db, `rooms/${currentRoom}/leaderQueue`), leaderQueue);
+    await set(ref(db, `rooms/${currentRoom}/currentRound`), currentRound);
+    await set(ref(db, `rooms/${currentRoom}/currentLeader`), currentLeader);
 
-      // 2. Shuffle queue
-      const shuffledQueue = collectedPlayers
-        .sort(() => Math.random() - 0.5);
+    // 3. Start game
+    await set(ref(db, `rooms/${currentRoom}/gameState`), 'PROMPT');
 
-      // Save locally
-      leaderQueue = shuffledQueue;
-
-      // 3. Save queue
-      await set(
-        ref(db, `rooms/${currentRoom}/leaderQueue`),
-        shuffledQueue
-      );
-
-      // 4. Set current round
-      currentRound = 0;
-
-      await set(
-        ref(db, `rooms/${currentRoom}/currentRound`),
-        0
-      );
-
-      // 5. Set current leader
-      currentLeader = shuffledQueue[0];
-
-      await set(
-        ref(db, `rooms/${currentRoom}/currentLeader`),
-        currentLeader
-      );
-
-      // 6. Start prompt phase LAST
-      await set(
-        ref(db, `rooms/${currentRoom}/gameState`),
-        'PROMPT'
-      );
-
-    }, {
-      onlyOnce: true
-    });
-  }
-
-      // Create shuffled leader order
-      leaderQueue = [...playerIds]
-        .sort(() => Math.random() - 0.5);
-
-      currentRound = 0;
-
-      await set(
-        ref(db, `rooms/${currentRoom}/leaderQueue`),
-        leaderQueue
-      );
-
-      await set(
-        ref(db, `rooms/${currentRoom}/currentRound`),
-        currentRound
-      );
-
-      currentLeader = leaderQueue[currentRound];
-
-      await set(
-        ref(db, `rooms/${currentRoom}/currentLeader`),
-        currentLeader
-      );
-
-    }, {
-      onlyOnce: true
-    });
-  }
+  }, { onlyOnce: true });
+};
+  
 
   // =========================
   // GAME STATE SYNCHRONIZATION
