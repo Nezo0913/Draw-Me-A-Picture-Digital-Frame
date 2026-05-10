@@ -425,6 +425,8 @@
     // DRAWING PHASE
     if (gameState === 'DRAWING') {
 
+      attachLiveCanvas(currentRoom, currentRound);
+
       startRoundTimer(30);
 
       gameStatus.innerHTML = `
@@ -477,6 +479,9 @@
   }
 
   function loadRoundCanvas(roundIndex, canvasEl) {
+
+    if (!currentRoom) return; // IMPORTANT SAFETY FIX
+
     const ctx2 = canvasEl.getContext("2d");
 
     onValue(
