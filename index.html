@@ -124,20 +124,21 @@
   const db = getDatabase(app);
 
   // =========================
-  // FIXED CLIENT ID (SAFE INIT)
+  // CLIENT ID SYSTEM
   // =========================
-  let clientId = sessionStorage.getItem('drawingClientId');
 
-  // Always create a new ID if none exists
-  if (!clientId) {
+  let clientId = sessionStorage.getItem("drawingClientId");
+
+  // Detect duplicated tab
+  const isDuplicateTab =
+    window.opener !== null ||
+    performance.getEntriesByType("navigation")[0]?.type === "navigate";
+
+  // If duplicated/new tab -> force new identity
+  if (!clientId || isDuplicateTab) {
     clientId = crypto.randomUUID();
-    sessionStorage.setItem('drawingClientId', clientId);
+    sessionStorage.setItem("drawingClientId", clientId);
   }
-
-  // Ensure refresh keeps same identity
-  window.addEventListener("beforeunload", () => {
-    sessionStorage.setItem('drawingClientId', clientId);
-  });
 
   // =========================
   // ROOM CODE GENERATOR
@@ -466,10 +467,9 @@
       attachLiveCanvas(currentRoom, currentRound);
 
       // Prevent duplicated timers
-      if (!roundInterval) {
+      if (!roundInterval && clientId === currentLeader) {
         startRoundTimer(30);
       }
-
       gameStatus.innerHTML = `
         <h2>Everyone Draw!</h2>
       `;
@@ -593,9 +593,6 @@
         await new Promise(res => setTimeout(res, 2000));
 
         // Advance round AFTER transition
-        currentRound++;
-
-        // Advance ordered leader rotation
         currentRound++;
 
         // All players already became leader
