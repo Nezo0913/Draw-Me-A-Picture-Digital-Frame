@@ -580,18 +580,29 @@
   // SUBMIT PROMPT
   // =========================
 
-  window.submitPrompt = async function() {
-    const prompt = document
-      .getElementById('promptInput')
-      .value
-      .trim();
+  window.submitPrompt = async function () {
+    if (clientId !== currentLeader) return;
+    
+    const prompt = document.getElementById('promptInput').value.trim();
+    if (!prompt || !currentRoom) return;
 
-    if (!prompt) return;
+    const promptRef = ref(db, `rooms/${currentRoom}/prompt`);
+    const stateRef = ref(db, `rooms/${currentRoom}/gameState`);
 
-    await set(ref(db, `rooms/${currentRoom}/prompt`), prompt);
+    try {
+      // 1. Save prompt FIRST
+      await set(promptRef, prompt);
 
-    await set(ref(db, `rooms/${currentRoom}/gameState`), 'DRAWING');
-  }
+      // 2. Small delay ensures Firebase sync order
+      await new Promise(res => setTimeout(res, 100));
+
+      // 3. Switch game state
+      await set(stateRef, 'DRAWING');
+
+    } catch (err) {
+      console.error("Submit prompt failed:", err);
+    }
+  };
 
   // =========================
   // RETURN TO LOBBY
