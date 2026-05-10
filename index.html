@@ -128,10 +128,16 @@
   // =========================
   let clientId = sessionStorage.getItem('drawingClientId');
 
+  // Always create a new ID if none exists
   if (!clientId) {
     clientId = crypto.randomUUID();
     sessionStorage.setItem('drawingClientId', clientId);
   }
+
+  // Ensure refresh keeps same identity
+  window.addEventListener("beforeunload", () => {
+    sessionStorage.setItem('drawingClientId', clientId);
+  });
 
   // =========================
   // ROOM CODE GENERATOR
