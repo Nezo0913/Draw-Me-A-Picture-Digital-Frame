@@ -329,14 +329,16 @@
   // =========================
   // GAME STATE SYNCHRONIZATION
   // =========================
-
+  let isRendering = false;
   function synchronizeGameState(roomCode) {
 
-    // Sync game state
+    let lastState = null;
+
     onValue(ref(db, `rooms/${roomCode}/gameState`), (snapshot) => {
       const gameState = snapshot.val();
 
-      if (!gameState) return;
+      if (!gameState || gameState === lastState) return;
+      lastState = gameState;
 
       renderGameScreen(gameState);
     });
@@ -368,8 +370,18 @@
   // =========================
   // RENDER GAME SCREENS
   // =========================
+  function safeRender(gameState) {
+    if (isRendering) return;
 
-  function renderGameScreen(gameState) {
+    isRendering = true;
+
+    requestAnimationFrame(() => {
+      renderGameScreen(gameState);
+      isRendering = false;
+    });
+  }
+
+  function safeRender(gameState); {
 
     const gameStatus = document.getElementById('gameStatus');
     const canvas = document.getElementById('canvas');
