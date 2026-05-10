@@ -297,6 +297,24 @@
   let currentRound = 0;
 
   // =========================
+  // CANVAS SYNC VARIABLES
+  // =========================
+  let roundInterval = null;
+  
+  let allLines = {};
+  let activeCanvasUnsubscribe = null;
+  let isRedrawing = false;
+
+  let isRendering = false;
+
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  let drawing = false;
+  let mode = 'draw';
+  let lastX = 0;
+  let lastY = 0;
+  // =========================
   // START GAME
   // =========================
 
@@ -336,7 +354,6 @@
   // =========================
   // GAME STATE SYNCHRONIZATION
   // =========================
-  let isRendering = false;
   function synchronizeGameState(roomCode) {
 
     let lastState = null;
@@ -554,8 +571,6 @@
   // ROUND TIMER
   // =========================
 
-  let roundInterval = null;
-
   function startRoundTimer(seconds) {
 
     const timer = document.getElementById('roundTimer');
@@ -703,22 +718,6 @@
   }
 
   // =========================
-  // CANVAS SETUP
-  // =========================
-  let canvas;
-  let ctx;
-
-  window.addEventListener("DOMContentLoaded", () => {
-    canvas = document.getElementById('canvas');
-    ctx = canvas.getContext('2d');
-  });
-
-  let drawing = false;
-  let mode = 'draw';
-  let lastX = 0;
-  let lastY = 0;
-
-  // =========================
   // START DRAWING
   // =========================
   canvas.addEventListener('mousedown', (e) => {
@@ -789,10 +788,6 @@
   // =========================
   // LIVE ROUND SYNCHRONIZATION
   // =========================
-
-  let allLines = {};
-  let activeCanvasUnsubscribe = null;
-  let isRedrawing = false;
 
   function attachLiveCanvas(roomId, roundIndex) {
 
