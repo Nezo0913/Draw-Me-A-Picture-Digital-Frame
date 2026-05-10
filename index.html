@@ -419,15 +419,23 @@
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
 
+      if (activeCanvasUnsubscribe) {
+        activeCanvasUnsubscribe();
+        activeCanvasUnsubscribe = null;
+      }
       renderVotingScreen();
     }
 
     // DRAWING PHASE
     if (gameState === 'DRAWING') {
 
+      // Attach synchronized round canvas
       attachLiveCanvas(currentRoom, currentRound);
 
-      startRoundTimer(30);
+      // Prevent duplicated timers
+      if (!roundInterval) {
+        startRoundTimer(30);
+      }
 
       gameStatus.innerHTML = `
         <h2>Everyone Draw!</h2>
@@ -436,6 +444,10 @@
       canvas.style.display = 'block';
       toolbar.style.display = 'flex';
       promptDisplay.style.display = 'block';
+
+      // IMPORTANT:
+      // clear stale prompt screens
+      document.getElementById('countdownTimer').style.display = 'none';
     }
 
     // Round Finished Screen
@@ -536,8 +548,19 @@
       if (remaining <= 0) {
 
         clearInterval(roundInterval);
+        roundInterval = null;
 
-        await set(ref(db, `rooms/${currentRoom}/gameState`), 'ROUND_END');
+        // FIRST show transition screen
+        await set(
+          ref(db, `rooms/${currentRoom}/gameState`),
+          'ROUND_END'
+        );
+
+        // Give all clients time to transition
+        await new Promise(res => setTimeout(res, 2000));
+
+        // Advance round AFTER transition
+        currentRound++;
 
         // Advance ordered leader rotation
         currentRound++;
@@ -594,7 +617,7 @@
       await set(promptRef, prompt);
 
       // 2. Small delay ensures Firebase sync order
-      await new Promise(res => setTimeout(res, 100));
+      await new Promise(res => setTimeout(res, 500));
 
       // 3. Switch game state
       await set(stateRef, 'DRAWING');
@@ -755,21 +778,58 @@
   }
 
   // =========================
-  // REALTIME SYNCHRONIZATION
+  // LIVE ROUND SYNCHRONIZATION
   // =========================
 
-  // Store all active lines locally
   let allLines = {};
-
-  // Prevent duplicate redraw spam
+  let activeCanvasUnsubscribe = null;
   let isRedrawing = false;
 
-  // Full synchronization listener
-  // Keeps every client perfectly aligned using a single source of truth
-  onValue(ref(db, `rooms/${currentRoom}/rounds/${currentRound}/lines`), (snapshot) => {
-    allLines = snapshot.val() || {};
-    redrawCanvas();
-  });
+  function attachLiveCanvas(roomId, roundIndex) {
+
+    if (!roomId && roomId !== 0) return;
+
+    // IMPORTANT:
+    // prevent duplicated Firebase listeners
+    if (activeCanvasUnsubscribe) {
+      activeCanvasUnsubscribe();
+      activeCanvasUnsubscribe = null;
+    }
+
+    allLines = {};
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const roundLinesRef = ref(
+      db,
+      `rooms/${roomId}/rounds/${roundIndex}/lines`
+    );
+
+    activeCanvasUnsubscribe = onValue(roundLinesRef, (snapshot) => {
+
+      allLines = snapshot.val() || {};
+
+      redrawCanvas();
+    });
+  }
+
+  function redrawCanvas() {
+
+    if (isRedrawing) return;
+
+    isRedrawing = true;
+
+    requestAnimationFrame(() => {
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const key in allLines) {
+        renderLine(allLines[key]);
+      }
+
+      isRedrawing = false;
+    });
+  }
 
   // Redraw entire canvas from synchronized state
   function redrawCanvas() {
@@ -811,9 +871,13 @@
 
     // Then synchronize deletions to Firebase
     const deletePromises = keysToDelete.map(key =>
-      remove(ref(db, `lines/${key}`))
+      remove(
+        ref(
+          db,
+          `rooms/${currentRoom}/rounds/${currentRound}/lines/${key}`
+        )
+      )
     );
-
     await Promise.all(deletePromises);
   }
 
