@@ -133,23 +133,6 @@
     sessionStorage.setItem('drawingClientId', clientId);
   }
 
-  
-
-  // Session-based client ID
-  const navigationType =
-    performance.getEntriesByType('navigation')[0]?.type;
-
-  if (
-    navigationType !== 'reload' ||
-    !sessionStorage.getItem('drawingClientId')
-  ) {
-    sessionStorage.setItem(
-      'drawingClientId',
-      crypto.randomUUID()
-    );
-  }
-
-
   // =========================
   // ROOM CODE GENERATOR
   // =========================
@@ -707,8 +690,13 @@
   // =========================
   // CANVAS SETUP
   // =========================
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
+  let canvas;
+  let ctx;
+
+  window.addEventListener("DOMContentLoaded", () => {
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
+  });
 
   let drawing = false;
   let mode = 'draw';
@@ -818,25 +806,7 @@
       redrawCanvas();
     });
   }
-
-  function redrawCanvas() {
-
-    if (isRedrawing) return;
-
-    isRedrawing = true;
-
-    requestAnimationFrame(() => {
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (const key in allLines) {
-        renderLine(allLines[key]);
-      }
-
-      isRedrawing = false;
-    });
-  }
-
+  
   // Redraw entire canvas from synchronized state
   function redrawCanvas() {
     if (isRedrawing) return;
