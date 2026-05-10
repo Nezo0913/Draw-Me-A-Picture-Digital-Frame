@@ -374,7 +374,8 @@
     const inLobby = gameState === 'LOBBY';
 
     roomCodeText.style.display = inLobby ? 'block' : 'none';
-    playerList.style.display = inLobby ? 'block' : 'none';
+    playerList.style.display = 'block';
+    playerCount.style.display = 'block';
     playerCount.style.display = inLobby ? 'block' : 'none';
     lobbyControls.style.display = inLobby ? 'flex' : 'none';
 
@@ -418,13 +419,7 @@
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
 
-      gameStatus.innerHTML = `
-        <h2>Final Voting Phase</h2>
-        <p>Everyone has already become leader.</p>
-        <button onclick="returnToLobby()">
-          Play Again
-        </button>
-      `;
+      renderVotingScreen();
     }
 
     // DRAWING PHASE
@@ -440,6 +435,69 @@
       toolbar.style.display = 'flex';
       promptDisplay.style.display = 'block';
     }
+
+    // Round Finished Screen
+    if (gameState === 'ROUND_END') {
+
+      canvas.style.display = 'none';
+      toolbar.style.display = 'none';
+
+      gameStatus.innerHTML = `
+        <h2>Round Finished</h2>
+        <p>Preparing next leader...</p>
+  `    ;
+    }
+  }
+
+  function renderVotingScreen() {
+    const gameStatus = document.getElementById("gameStatus");
+
+    gameStatus.innerHTML = "<h2>Vote for the Best Drawing</h2>";
+
+    const grid = document.createElement("div");
+
+    const cols = Math.max(1, Math.floor(Math.sqrt(leaderQueue.length)));
+
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    grid.style.gap = "10px";
+
+    for (let i = 0; i < leaderQueue.length; i++) {
+      const c = document.createElement("canvas");
+      c.width = 200;
+      c.height = 150;
+      c.style.border = "1px solid black";
+
+      loadRoundCanvas(i, c);
+
+      grid.appendChild(c);
+    }
+
+    gameStatus.appendChild(grid);
+  }
+
+  function loadRoundCanvas(roundIndex, canvasEl) {
+    const ctx2 = canvasEl.getContext("2d");
+
+    onValue(
+      ref(db, `rooms/${currentRoom}/rounds/${roundIndex}/lines`),
+      (snapshot) => {
+        const lines = snapshot.val() || {};
+
+        ctx2.clearRect(0, 0, canvasEl.width, canvasEl.height);
+
+        for (const key in lines) {
+          const l = lines[key];
+
+          ctx2.beginPath();
+          ctx2.moveTo(l.x1, l.y1);
+          ctx2.lineTo(l.x2, l.y2);
+          ctx2.lineWidth = l.mode === "draw" ? 2 : 8;
+          ctx2.stroke();
+        }
+      },
+      { onlyOnce: true }
+    );
   }
 
   // =========================
@@ -474,7 +532,7 @@
 
         clearInterval(roundInterval);
 
-        timer.innerText = 'Round Finished!';
+        await set(ref(db, `rooms/${currentRoom}/gameState`), 'ROUND_END');
 
         // Advance ordered leader rotation
         currentRound++;
@@ -659,7 +717,7 @@
     renderLine(lineData);
 
     // Send to Firebase
-    push(ref(db, 'lines'), lineData);
+    push(ref(db, `rooms/${currentRoom}/rounds/${currentRound}/lines`), lineData);
 
     lastX = x;
     lastY = y;
@@ -692,7 +750,7 @@
 
   // Full synchronization listener
   // Keeps every client perfectly aligned using a single source of truth
-  onValue(ref(db, 'lines'), (snapshot) => {
+  onValue(ref(db, `rooms/${currentRoom}/rounds/${currentRound}/lines`), (snapshot) => {
     allLines = snapshot.val() || {};
     redrawCanvas();
   });
