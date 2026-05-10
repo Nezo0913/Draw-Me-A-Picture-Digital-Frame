@@ -123,6 +123,18 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
+  // =========================
+  // FIXED CLIENT ID (SAFE INIT)
+  // =========================
+  let clientId = sessionStorage.getItem('drawingClientId');
+
+  if (!clientId) {
+    clientId = crypto.randomUUID();
+    sessionStorage.setItem('drawingClientId', clientId);
+  }
+
+  
+
   // Session-based client ID
   const navigationType =
     performance.getEntriesByType('navigation')[0]?.type;
@@ -137,7 +149,6 @@
     );
   }
 
-  let clientId = sessionStorage.getItem('drawingClientId');
 
   // =========================
   // ROOM CODE GENERATOR
