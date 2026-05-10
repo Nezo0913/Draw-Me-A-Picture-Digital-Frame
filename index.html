@@ -337,10 +337,12 @@
     onValue(ref(db, `rooms/${roomCode}/gameState`), (snapshot) => {
       const gameState = snapshot.val();
 
-      if (!gameState || gameState === lastState) return;
+      if (!gameState) return;
+
+      if (gameState === lastState) return;
       lastState = gameState;
 
-      renderGameScreen(gameState);
+      safeRender(gameState);
     });
 
     // Sync leader queue
@@ -451,6 +453,10 @@
     if (gameState === 'DRAWING') {
 
       // Attach synchronized round canvas
+      if (activeCanvasUnsubscribe) {
+        activeCanvasUnsubscribe();
+        activeCanvasUnsubscribe = null;
+      }
       attachLiveCanvas(currentRoom, currentRound);
 
       // Prevent duplicated timers
@@ -634,13 +640,7 @@
     const stateRef = ref(db, `rooms/${currentRoom}/gameState`);
 
     try {
-      // 1. Save prompt FIRST
       await set(promptRef, prompt);
-
-      // 2. Small delay ensures Firebase sync order
-      await new Promise(res => setTimeout(res, 500));
-
-      // 3. Switch game state
       await set(stateRef, 'DRAWING');
 
     } catch (err) {
