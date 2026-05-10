@@ -123,6 +123,22 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
+  // Session-based client ID
+  const navigationType =
+    performance.getEntriesByType('navigation')[0]?.type;
+
+  if (
+    navigationType !== 'reload' ||
+    !sessionStorage.getItem('drawingClientId')
+  ) {
+    sessionStorage.setItem(
+      'drawingClientId',
+      crypto.randomUUID()
+    );
+  }
+
+  let clientId = sessionStorage.getItem('drawingClientId');
+
   // =========================
   // ROOM CODE GENERATOR
   // =========================
@@ -684,26 +700,6 @@
   const ctx = canvas.getContext('2d');
 
   let drawing = false;
-
-  // Session-based client ID
-  // Generate a completely unique player session per browser tab.
-  // Prevent duplicated tabs from inheriting the same identity.
-
-  const navigationType =
-    performance.getEntriesByType('navigation')[0]?.type;
-
-  // Generate NEW identity for duplicated/new tabs
-  if (
-    navigationType !== 'reload' ||
-    !sessionStorage.getItem('drawingClientId')
-  ) {
-    sessionStorage.setItem(
-      'drawingClientId',
-      crypto.randomUUID()
-    );
-  }
-
-  let clientId = sessionStorage.getItem('drawingClientId');
   let mode = 'draw';
   let lastX = 0;
   let lastY = 0;
