@@ -478,8 +478,8 @@
 
       // Attach synchronized round canvas
       if (activeCanvasUnsubscribe) {
-      attachLiveCanvas(currentRoom, currentRound);
-
+        attachLiveCanvas(currentRoom, currentRound);
+      }
       // Prevent duplicated timers
       if (!roundInterval && clientId === currentLeader) {
         startRoundTimer(30);
@@ -501,8 +501,8 @@
     if (gameState === 'ROUND_END') {
 
       if (activeCanvasUnsubscribe) {
-      activeCanvasUnsubscribe();
-      activeCanvasUnsubscribe = null;
+        activeCanvasUnsubscribe();
+        activeCanvasUnsubscribe = null;
       }
 
       canvas.style.display = 'none';
