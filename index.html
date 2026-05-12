@@ -401,6 +401,11 @@
 
       if (time == null) return;
 
+      const timer = document.getElementById('roundTimer');
+
+      // Force visibility for ALL players
+      timer.style.display = 'block';
+
       document.getElementById('roundTimer').innerText =
         `Time Left: ${time}`;
     });
@@ -467,6 +472,8 @@
     // PROMPT PHASE
     if (gameState === 'PROMPT') {
 
+      document.getElementById('roundTimer').style.display = 'none';
+      
       canvas.style.display = 'none';
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
@@ -491,6 +498,7 @@
     // FINAL VOTING PHASE
     if (gameState === 'FINAL_VOTING') {
 
+      document.getElementById('roundTimer').style.display = 'none';
       canvas.style.display = 'none';
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
@@ -507,6 +515,7 @@
     // DRAWING PHASE
     if (gameState === 'DRAWING') {
 
+      document.getElementById('roundTimer').style.display = 'block';
       // Attach canvas ONLY if round changed
       if (attachedRound !== currentRound) {
 
@@ -538,7 +547,8 @@
 
     // Round Finished Screen
     if (gameState === 'ROUND_END') {
-
+      document.getElementById('roundTimer').style.display = 'none';
+      
       if (activeCanvasUnsubscribe) {
         activeCanvasUnsubscribe();
         activeCanvasUnsubscribe = null;
