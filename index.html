@@ -406,8 +406,7 @@
 
       document.getElementById('roundTimer').style.display = 'block';
 
-      document.getElementById('roundTimer').innerText =
-        `Time Left: ${time}`;
+      roundTimer.innerText = `Time Left: ${time}`;
     });
     
     // Sync transition timer
@@ -451,10 +450,13 @@
     const playerList = document.getElementById('playerList');
     const playerCount = document.getElementById('playerCount');
     const lobbyControls = document.getElementById('lobbyControls');
-
-    // Hide ALL lobby elements during active gameplay
+    const roundTimer = document.getElementById('roundTimer');
     const inLobby = gameState === 'LOBBY';
 
+    function showTimer(show) {
+      roundTimer.style.display = show ? 'block' : 'none';
+    }
+    
     roomCodeText.style.display = inLobby ? 'block' : 'none';
     playerList.style.display = 'block';
     playerCount.style.display = inLobby ? 'block' : 'none';
@@ -472,7 +474,7 @@
     // PROMPT PHASE
     if (gameState === 'PROMPT') {
 
-      document.getElementById('roundTimer').style.display = 'none';
+      showTimer(false);
       
       canvas.style.display = 'none';
       toolbar.style.display = 'none';
@@ -498,7 +500,7 @@
     // FINAL VOTING PHASE
     if (gameState === 'FINAL_VOTING') {
 
-      hideAllTimers();
+      showTimer(false);
       document.getElementById('roundTimer').style.display = 'none';
       
       canvas.style.display = 'none';
@@ -536,7 +538,8 @@
       gameStatus.innerHTML = `
         <h2>Everyone Draw!</h2>
       `;
-
+      showTimer(true);
+      
       canvas.style.display = 'block';
       toolbar.style.display = 'flex';
       promptDisplay.style.display = 'block';
@@ -549,7 +552,7 @@
     // Round Finished Screen
     if (gameState === 'ROUND_END') {
 
-      hideAllTimers();
+      showTimer(true);
       
       if (activeCanvasUnsubscribe) {
         activeCanvasUnsubscribe();
