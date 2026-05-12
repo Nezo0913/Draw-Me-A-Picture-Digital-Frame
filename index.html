@@ -548,6 +548,7 @@
     // Round Finished Screen
     if (gameState === 'ROUND_END') {
       document.getElementById('roundTimer').style.display = 'none';
+      promptDisplay.style.display = 'none';
       
       if (activeCanvasUnsubscribe) {
         activeCanvasUnsubscribe();
