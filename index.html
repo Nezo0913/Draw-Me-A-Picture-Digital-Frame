@@ -316,11 +316,6 @@
   let lastY = 0;
 
   let attachedRound = null;
-
-  function hideAllTimers() {
-    document.getElementById('roundTimer').style.display = 'none';
-    document.getElementById('countdownTimer').style.display = 'none';
-  }
   // =========================
   // START GAME
   // =========================
@@ -402,11 +397,12 @@
     // Sync game timer
     onValue(ref(db, `rooms/${roomCode}/roundTime`), (snapshot) => {
 
-      if (time == null || lastState !== 'DRAWING') return;
+      const time = snapshot.val();
 
-      document.getElementById('roundTimer').style.display = 'block';
+      if (time == null) return;
 
-      roundTimer.innerText = `Time Left: ${time}`;
+      document.getElementById('roundTimer').innerText =
+        `Time Left: ${time}`;
     });
     
     // Sync transition timer
@@ -450,13 +446,10 @@
     const playerList = document.getElementById('playerList');
     const playerCount = document.getElementById('playerCount');
     const lobbyControls = document.getElementById('lobbyControls');
-    const roundTimer = document.getElementById('roundTimer');
+
+    // Hide ALL lobby elements during active gameplay
     const inLobby = gameState === 'LOBBY';
 
-    function showTimer(show) {
-      roundTimer.style.display = show ? 'block' : 'none';
-    }
-    
     roomCodeText.style.display = inLobby ? 'block' : 'none';
     playerList.style.display = 'block';
     playerCount.style.display = inLobby ? 'block' : 'none';
@@ -474,8 +467,6 @@
     // PROMPT PHASE
     if (gameState === 'PROMPT') {
 
-      showTimer(false);
-      
       canvas.style.display = 'none';
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
@@ -500,9 +491,6 @@
     // FINAL VOTING PHASE
     if (gameState === 'FINAL_VOTING') {
 
-      showTimer(false);
-      document.getElementById('roundTimer').style.display = 'none';
-      
       canvas.style.display = 'none';
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
@@ -519,7 +507,6 @@
     // DRAWING PHASE
     if (gameState === 'DRAWING') {
 
-      roundTimer.style.display = 'block';
       // Attach canvas ONLY if round changed
       if (attachedRound !== currentRound) {
 
@@ -539,8 +526,7 @@
       gameStatus.innerHTML = `
         <h2>Everyone Draw!</h2>
       `;
-      showTimer(true);
-      
+
       canvas.style.display = 'block';
       toolbar.style.display = 'flex';
       promptDisplay.style.display = 'block';
@@ -553,8 +539,6 @@
     // Round Finished Screen
     if (gameState === 'ROUND_END') {
 
-      showTimer(true);
-      
       if (activeCanvasUnsubscribe) {
         activeCanvasUnsubscribe();
         activeCanvasUnsubscribe = null;
@@ -635,7 +619,7 @@
     timer.style.display = 'block';
 
     // Only current leader controls timer
-    if (roundInterval) return;
+    if (clientId !== currentLeader) return;
 
     // Prevent duplicated intervals
     if (roundInterval) {
