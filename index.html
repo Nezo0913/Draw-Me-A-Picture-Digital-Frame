@@ -478,9 +478,6 @@
 
       // Attach synchronized round canvas
       if (activeCanvasUnsubscribe) {
-        activeCanvasUnsubscribe();
-        activeCanvasUnsubscribe = null;
-      }
       attachLiveCanvas(currentRoom, currentRound);
 
       // Prevent duplicated timers
@@ -502,6 +499,11 @@
 
     // Round Finished Screen
     if (gameState === 'ROUND_END') {
+
+      if (activeCanvasUnsubscribe) {
+      activeCanvasUnsubscribe();
+      activeCanvasUnsubscribe = null;
+      }
 
       canvas.style.display = 'none';
       toolbar.style.display = 'none';
