@@ -316,6 +316,11 @@
   let lastY = 0;
 
   let attachedRound = null;
+
+  function hideAllTimers() {
+    document.getElementById('roundTimer').style.display = 'none';
+    document.getElementById('countdownTimer').style.display = 'none';
+  }
   // =========================
   // START GAME
   // =========================
@@ -397,9 +402,9 @@
     // Sync game timer
     onValue(ref(db, `rooms/${roomCode}/roundTime`), (snapshot) => {
 
-      const time = snapshot.val();
+      if (time == null || lastState !== 'DRAWING') return;
 
-      if (time == null) return;
+      document.getElementById('roundTimer').style.display = 'block';
 
       document.getElementById('roundTimer').innerText =
         `Time Left: ${time}`;
@@ -493,6 +498,7 @@
     // FINAL VOTING PHASE
     if (gameState === 'FINAL_VOTING') {
 
+      hideAllTimers();
       document.getElementById('roundTimer').style.display = 'none';
       
       canvas.style.display = 'none';
@@ -543,6 +549,8 @@
     // Round Finished Screen
     if (gameState === 'ROUND_END') {
 
+      hideAllTimers();
+      
       if (activeCanvasUnsubscribe) {
         activeCanvasUnsubscribe();
         activeCanvasUnsubscribe = null;
