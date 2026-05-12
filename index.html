@@ -392,7 +392,8 @@
 
       document.getElementById('promptDisplay').innerText =
         `Prompt: ${currentPrompt}`;
-
+    });
+    
     // Sync game timer
     onValue(ref(db, `rooms/${roomCode}/roundTime`), (snapshot) => {
 
@@ -402,7 +403,8 @@
 
       document.getElementById('roundTimer').innerText =
         `Time Left: ${time}`;
-
+    });
+    
     // Sync transition timer
     onValue(ref(db, `rooms/${roomCode}/transitionTime`), (snapshot) => {
 
