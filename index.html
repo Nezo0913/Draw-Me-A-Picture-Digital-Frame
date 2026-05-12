@@ -314,8 +314,6 @@
   let mode = 'draw';
   let lastX = 0;
   let lastY = 0;
-
-  let attachedRound = null;
   // =========================
   // START GAME
   // =========================
@@ -472,25 +470,15 @@
         activeCanvasUnsubscribe();
         activeCanvasUnsubscribe = null;
       }
-
-      attachedRound = null;
       renderVotingScreen();
     }
 
     // DRAWING PHASE
     if (gameState === 'DRAWING') {
 
-      // Attach canvas ONLY if round changed
-      if (attachedRound !== currentRound) {
-
-        if (activeCanvasUnsubscribe) {
-          activeCanvasUnsubscribe();
-          activeCanvasUnsubscribe = null;
-        }
-
+      // Attach synchronized round canvas
+      if (activeCanvasUnsubscribe) {
         attachLiveCanvas(currentRoom, currentRound);
-
-        attachedRound = currentRound;
       }
       // Prevent duplicated timers
       if (!roundInterval && clientId === currentLeader) {
