@@ -392,6 +392,31 @@
 
       document.getElementById('promptDisplay').innerText =
         `Prompt: ${currentPrompt}`;
+
+    // Sync game timer
+    onValue(ref(db, `rooms/${roomCode}/roundTime`), (snapshot) => {
+
+      const time = snapshot.val();
+
+      if (time == null) return;
+
+      document.getElementById('roundTimer').innerText =
+        `Time Left: ${time}`;
+
+    // Sync transition timer
+    onValue(ref(db, `rooms/${roomCode}/transitionTime`), (snapshot) => {
+
+      const time = snapshot.val();
+
+      if (time == null) return;
+
+      if (lastState === 'ROUND_END') {
+
+        document.getElementById('gameStatus').innerHTML = `
+          <h2>Round Finished</h2>
+          <p>Next round starting in ${time}...</p>
+        `;
+      }
     });
   }
 
@@ -591,20 +616,31 @@
 
     timer.style.display = 'block';
 
-    // Prevent duplicated timers
+    // Only current leader controls timer
+    if (clientId !== currentLeader) return;
+
+    // Prevent duplicated intervals
     if (roundInterval) {
       clearInterval(roundInterval);
     }
-
+  
     let remaining = seconds;
 
-    timer.innerText = `Time Left: ${remaining}`;
+    // Sync initial value
+    set(
+      ref(db, `rooms/${currentRoom}/roundTime`),
+      remaining
+    );
 
     roundInterval = setInterval(async () => {
 
       remaining--;
 
-      timer.innerText = `Time Left: ${remaining}`;
+      // Sync countdown to everyone
+      await set(
+        ref(db, `rooms/${currentRoom}/roundTime`),
+        remaining
+      );
 
       // Round finished
       if (remaining <= 0) {
@@ -612,19 +648,48 @@
         clearInterval(roundInterval);
         roundInterval = null;
 
-        // FIRST show transition screen
+        // Move to transition screen
         await set(
           ref(db, `rooms/${currentRoom}/gameState`),
           'ROUND_END'
         );
 
-        // Give all clients time to transition
-        await new Promise(res => setTimeout(res, 2000));
+        // Start transition countdown
+        startTransitionTimer(5);
+      }
 
-        // Advance round AFTER transition
+    }, 1000);
+  }
+
+  async function startTransitionTimer(seconds) {
+
+    // Only leader controls transition
+    if (clientId !== currentLeader) return;
+
+    let remaining = seconds;
+
+    await set(
+      ref(db, `rooms/${currentRoom}/transitionTime`),
+      remaining
+    );
+
+    const transitionInterval = setInterval(async () => {
+
+      remaining--;
+
+      await set(
+        ref(db, `rooms/${currentRoom}/transitionTime`),
+        remaining
+      );
+
+      // Transition finished
+      if (remaining <= 0) {
+
+        clearInterval(transitionInterval);
+
         currentRound++;
 
-        // All players already became leader
+        // Everyone already became leader
         if (currentRound >= leaderQueue.length) {
 
           await set(
@@ -632,11 +697,10 @@
             'FINAL_VOTING'
           );
 
-          timer.innerText = 'Final Voting Phase!';
           return;
         }
 
-        // Next leader in shuffled order
+        // Advance to next leader
         currentLeader = leaderQueue[currentRound];
 
         await set(
@@ -657,7 +721,6 @@
 
     }, 1000);
   }
-
   // =========================
   // SUBMIT PROMPT
   // =========================
