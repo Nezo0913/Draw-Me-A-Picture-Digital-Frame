@@ -467,6 +467,8 @@
     // PROMPT PHASE
     if (gameState === 'PROMPT') {
 
+      document.getElementById('roundTimer').style.display = 'none';
+      
       canvas.style.display = 'none';
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
@@ -491,6 +493,8 @@
     // FINAL VOTING PHASE
     if (gameState === 'FINAL_VOTING') {
 
+      document.getElementById('roundTimer').style.display = 'none';
+      
       canvas.style.display = 'none';
       toolbar.style.display = 'none';
       promptDisplay.style.display = 'none';
