@@ -519,6 +519,7 @@
     // DRAWING PHASE
     if (gameState === 'DRAWING') {
 
+      roundTimer.style.display = 'block';
       // Attach canvas ONLY if round changed
       if (attachedRound !== currentRound) {
 
@@ -634,7 +635,7 @@
     timer.style.display = 'block';
 
     // Only current leader controls timer
-    if (clientId !== currentLeader) return;
+    if (roundInterval) return;
 
     // Prevent duplicated intervals
     if (roundInterval) {
