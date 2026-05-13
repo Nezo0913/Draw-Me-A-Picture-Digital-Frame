@@ -572,7 +572,17 @@
 
     const grid = document.createElement("div");
 
-    const cols = Math.max(1, Math.floor(Math.sqrt(leaderQueue.length)));
+    let cols;
+
+    if (leaderQueue.length <= 2) {
+      cols = leaderQueue.length;
+    }
+    else if (leaderQueue.length <= 4) {
+      cols = 2;
+    }
+    else {
+      cols = 3;
+    }
 
     grid.style.display = "grid";
     grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
@@ -580,8 +590,18 @@
 
     for (let i = 0; i < leaderQueue.length; i++) {
       const c = document.createElement("canvas");
-      c.width = 200;
-      c.height = 150;
+      if (leaderQueue.length <= 2) {
+        c.width = 500;
+        c.height = 330;
+      }
+      else if (leaderQueue.length <= 4) {
+        c.width = 350;
+        c.height = 230;
+      }
+      else {
+        c.width = 250;
+        c.height = 170;
+      }
       c.style.border = "1px solid black";
 
       loadRoundCanvas(i, c);
@@ -608,10 +628,28 @@
         for (const key in lines) {
           const l = lines[key];
 
+          const scaleX = canvasEl.width / 600;
+          const scaleY = canvasEl.height / 400;
+
           ctx2.beginPath();
-          ctx2.moveTo(l.x1, l.y1);
-          ctx2.lineTo(l.x2, l.y2);
-          ctx2.lineWidth = l.mode === "draw" ? 2 : 8;
+
+          ctx2.moveTo(
+            l.x1 * scaleX,
+            l.y1 * scaleY
+          );
+
+          ctx2.lineTo(
+            l.x2 * scaleX,
+            l.y2 * scaleY
+          );
+
+          ctx2.lineWidth =
+            (l.mode === "draw" ? 2 : 8) * scaleX;
+
+          ctx2.lineCap = "round";
+          ctx2.strokeStyle =
+            l.mode === "draw" ? "black" : "white";
+
           ctx2.stroke();
         }
       },
