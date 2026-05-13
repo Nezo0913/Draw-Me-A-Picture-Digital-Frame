@@ -18,6 +18,23 @@
       margin: 10px;
     }
 
+    #gameArea {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    #toolbar {
+      justify-content: center;
+    }
+
+    #canvas {
+      display: block;
+      margin: 0 auto;
+    }
+
     button, select {
       padding: 8px;
       margin: 5px;
@@ -69,18 +86,19 @@
   <p id="playerCount"></p>
 </div>
 
-<div id="toolbar" style="display:none;">
-  <button onclick="setMode('draw')">Draw</button>
-  <button onclick="setMode('erase')">Erase</button>
-  <button onclick="clearCanvas()">Clear My Drawings</button>
+<div id="gameArea">
+  <div id="toolbar" style="display:none;">
+    <button onclick="setMode('draw')">Draw</button>
+    <button onclick="setMode('erase')">Erase</button>
+    <button onclick="clearCanvas()">Clear My Drawings</button>
 
-  
+  </div>
+
+  <h2 id="promptDisplay" style="display:none;"></h2>
+
+  <canvas id="canvas" width="600" height="400" style="display:none;"></canvas>
 </div>
-
-<h2 id="promptDisplay" style="display:none;"></h2>
-
-<canvas id="canvas" width="600" height="400" style="display:none;"></canvas>
-
+  
 <script type="module">
   // =========================
   // FIREBASE IMPORTS
